@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <!-- Stylize the boxes and links -->
+    <style>
+      .bound-box {
+        border: 5px solid black;
+        cursor: pointer;
+        position: absolute;
+        z-index: 0;
+      }
+      .draggable-box {
+        width: 70px;
+        height: 30px;
+        border: 1px solid black;
+        text-align: center;
+        cursor: pointer;
+        position: absolute;
+        z-index: 1;
+      }
+      .description-box {
+        width: 200px;
+        height: 200px;
+        border: 1px solid black;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        overflow: scroll;
+        z-index: 2;
+      }
+      .link {
+        position: absolute;
+        z-index: 1;
+        stroke: black;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="links-container" viewBox="0 0 3000 1800" width="3000" height="1800"></svg> 
+    <!-- Create the divs for each container -->
+    <div id="bound-container"></div>
+    <div id="boxes-container"></div>
+    <div id="description-container"></div>
+    <!-- Svg link container with viewbox the same size as the width and height to allow links to work anywhere visible -->
+    
+  <script type="text/javascript"></script>
+    <script>
+      // Load JSON file from same file path as a Promise
+      d3.json("./Project2Data.json").then(function(json) {
+        data = json;
+
+        // Initialize the box container and description container
+        var linksContainer = d3.select("#links-container");
+        var boundContainer = d3.select("#bound-container");
+        var boxesContainer = d3.select("#boxes-container");
+        var descriptionContainer = d3.select("#description-container");
+
+        // Extract the top-level keys and values from the json
+        var keys = Object.keys(data);
+        var values = Object.values(data);
+
+        // Select the link container and add links to it
+        linksContainer.selectAll("line")
+          .data(keys)
+          .enter()
+          .append("line")
+          .attr("class", function(d) { return d.replace(/\s/g, '') })
+          .attr("x1", 0)
+          .attr("y1", 0)
+          .attr("x2", 0)
+          .attr("y2", 0)
+          .classed("link", true);
+          // Create the function to update links, which creates links connecting visible boxes
+          function updateLinks() {
+            // Remove any existing links
+            linksContainer.selectAll("line").remove();
+
+            // Add links for each box that has a child box open
+            boxesContainer.selectAll(".draggable-box").each(function(d) {
+              var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+              if (!descriptionBox.empty() && descriptionBox.style("display") !== "none") {
+                var x1 = parseInt(d3.select(this).style("left"), 10) + 30;
+                var y1 = parseInt(d3.select(this).style("top"), 10) + 10;
+                var x2 = parseInt(descriptionBox.style("left"), 10) + 0;
+                var y2 = parseInt(descriptionBox.style("top"), 10) + 0;
+
+                // Add links to link container
+                linksContainer.append("line")
+                  .attr("x1", x1)
+                  .attr("y1", y1)
+                  .attr("x2", x2)
+                  .attr("y2", y2)
+                  .attr("class", "link")
+                  .attr("stroke", "black");
+              }
+            });
+          }
+
+
+        // Extract file titles from dictionary and turn into one list
+        var titles = Object.keys(values[0]);
+        var clusters = Array(Object.keys(values[0]).length).fill(0);
+        titles = titles.concat(Object.keys(values[1]));
+        clusters = clusters.concat(Array(Object.keys(values[1]).length).fill(1));
+        titles = titles.concat(Object.keys(values[2]));
+        clusters = clusters.concat(Array(Object.keys(values[2]).length).fill(2));
+        titles = titles.concat(Object.keys(values[3]));
+        clusters = clusters.concat(Array(Object.keys(values[3]).length).fill(3));
+        //console.log(clusters);
+
+        boundContainer.selectAll(".bound-box")
+          .data(clusters.filter((value, index, array) => array.indexOf(value) === index))
+          .enter()
+          .append("div")
+          .classed("bound-box", true)
+          .attr("id", function(d) {return "c" + d;})  // Set ID to cluster number so each doc can find its bounding box
+          .text(function(d) { return d; })
+          .style("font-size", "24px") 
+          .style("left", function(d, i) { return (i%2 * 800) + "px"; })
+          .style("top", function(d, i) { return (parseInt(i/2) * 415) + "px"; })
+          .style("width", "600px")
+          .style("height", "400px")
+          .style("background-color", "lightgray")
+          .call(
+            d3.drag()
+            .on("start", function(event, d) {
+              // Initialize dx and dy as starting locations before the drag
+              dx = parseInt(d3.select(this).style("left"), 10);
+              dy = parseInt(d3.select(this).style("top"), 10);
+              sx = dx; // Starting x value of the drag
+            })
+            .on("drag", function(event, d) {
+              // Drag by the change in movement
+              dx = dx + event.dx;
+              dy = dy + event.dy;
+              d3.select(this).style("left", (dx) + "px")
+                             .style("top", (dy) + "px");
+              boxesContainer.style("left", (dx) + "px")
+                             .style("top", (dy) + "px");
+              //d3.selectAll("#c" + d).style("left", (dx) + "px")//.attr("transform", "translate(" + dx + "px," + dy +   "px)");
+                             //.attr("cy", event.y);
+              updateLinks(); // Move the links
+
+              // Check if the element is being dragged to the left or right
+              w = 22000; // manual width of all docs - ideally changed to a user-based value
+              if (event.dx < 0 && window.scrollX > 0 && event.x < sx - 200) {
+                // If dragging to the left, scroll the page to the left
+                window.scrollBy(-10, 0);
+              } else if (event.dx > 0 && window.scrollX < w && event.x > sx + 200) {
+                // If dragging to the right, scroll the page to the right
+                window.scrollBy(10, 0);
+              }
+              // Move the element by the drag movement
+              d3.select(this).attr("transform", `translate(${event.x}, ${event.y})`);
+            }))
+
+        //console.log(boundContainer.selectAll("#c0"));
+        // for (let i = 0; i < 4; i++) {
+        //   c1 = clusters.indexOf(i);
+        //   if(i==3){
+        //     c2 = clusters.length;
+        //   } else{
+        //     c2 = clusters.indexOf(i+1);
+        //   }
+        //   clustData = titles.slice(c1, c2);
+        //   //console.log(boundContainer.selectAll("#c" + i));
+        //   console.log(boundContainer.select("#c" + i));
+        //   eval('var ' + "clust" + i + '= ' + boundContainer.select("#c" + i) + ';');
+        //   console.log(clust0);
+        //   boundContainer.selectAll("#c" + i)
+        //   .data(clustData)
+        //   .enter()
+        //   .append("div")
+        //   .classed("draggable-box", true)
+        //   .text(function(d) { return "AYO"; })
+        //   //console.log(clustData);
+        // }
+
+        // Create a map to set each agency to a color
+        var colors = {"CIA":"lightgreen", "DIA":"steelblue", "FBI":"cyan", "NSA":"yellow", "USCBP":"pink"};
+
+        // Create draggable boxes and put the file names into them, color based on color map, drag functionality
+        boxesContainer.selectAll(".draggable-box")
+          .data(titles)
+          .enter()
+          .append("div")
+          .classed("draggable-box", true)
+          .attr("id", function(d) {return "c" + clusters[titles.indexOf(d)];}) 
+          .text(function(d) { return d; })
+          .style("font-size", "10px") 
+          .style("left", function(d, i) {
+            var bound_id = clusters[titles.indexOf(d)]
+            var right = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().right
+            var left = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().left
+            var cIdx = i-clusters.findIndex(function(i){ return i==bound_id;}); // get index within cluster
+            // Place the doc in the bounds of the cluster using the within-cluster index
+            var dist = 100;
+            var maxAllowed = parseInt((right - left - 5)/dist);
+            if(d=="CIA_36"){
+              console.log((right - left + dist)/dist);
+              //console.log(left + 5 + (cIdx%maxAllowed * dist));
+            };
+            return left + 30 + (cIdx%maxAllowed * dist) + "px";
+          })
+          .style("top", function(d, i) {
+            var bound_id = clusters[titles.indexOf(d)]
+            var right = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().right
+            var left = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().left
+            var top = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().top
+            var bottom = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().bottom
+            var cIdx = i-clusters.findIndex(function(i){ return i==bound_id;}); // get index within cluster
+            // Place the doc in the bounds of the cluster using the within-cluster index
+            var dist = 50;
+            var distH = 100;
+            var maxAllowedH = parseInt((right - left - 5)/distH);
+            var maxAllowed = parseInt((bottom - top - 55)/dist);
+            //console.log(maxAllowed, parseInt(cIdx/maxAllowed));
+            if(d=="CIA_36"){
+              console.log(cIdx, maxAllowed, cIdx/maxAllowedH, dist);
+            };
+            //return top + 5 + (cIdx%maxAllowed * dist) + "px";
+            return top + 5 + (parseInt(cIdx/maxAllowedH) * dist) + "px";
+            // if(5 + (i%8 * 200) < top){ // if below the top bound
+            //   if(5 + (i%8 * 200) + 30 < bottom){ // if above the bottom bound
+            //     return 5 + (parseInt(i/8) * 50) + "px";
+            //   }
+            // }
+          })
+          .style("background-color", function (d) {return colors[d.split("_")[0]];})
+          .call(
+            d3.drag()
+            .on("start", function(event, d) {
+              // Initialize dx and dy as starting locations before the drag
+              dx = parseInt(d3.select(this).style("left"), 10);
+              dy = parseInt(d3.select(this).style("top"), 10);
+              sx = dx; // Starting x value of the drag
+
+              // Find the limits of movement
+              var bound_id = clusters[titles.indexOf(d)]
+              console.log(d3.selectAll("#c" + bound_id).node().getBoundingClientRect().right);//.attr('width'));
+
+            })
+            .on("drag", function(event, d) {
+              // Drag by the change in movement
+              dx = dx + event.dx;
+              dy = dy + event.dy;
+              d3.select(this).style("left", (dx) + "px")
+                             .style("top", (dy) + "px");
+              updateLinks(); // Move the links
+
+              // Check if the element is being dragged to the left or right
+              w = 22000; // manual width of all docs - ideally changed to a user-based value
+              if (event.dx < 0 && window.scrollX > 0 && event.x < sx - 200) {
+                // If dragging to the left, scroll the page to the left
+                window.scrollBy(-10, 0);
+              } else if (event.dx > 0 && window.scrollX < w && event.x > sx + 200) {
+                // If dragging to the right, scroll the page to the right
+                window.scrollBy(10, 0);
+              }
+              // Move the element by the drag movement
+              d3.select(this).attr("transform", `translate(${event.x}, ${event.y})`);
+            })
+          )
+          .on("click", function(event, d) { // Click event
+            // Initialize location of item clicked
+            clickx = parseInt(d3.select(this).style("left"), 10);
+            clicky = parseInt(d3.select(this).style("top"), 10);
+
+            // Get the description from the data and define the color to be set
+            var dataGrab = data[clusters[titles.indexOf(d)]][d];// 0, CIA_01
+            var currColor = colors[d.split("_")[0]];
+            var bound_id = clusters[titles.indexOf(d)];
+
+            // Select draggable boxes, and for each description box update the links
+            boxesContainer.selectAll(".draggable-box")
+            .each(function(d) {
+                var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+                if (!descriptionBox.empty()) {
+                    updateLinks();
+                }
+            });
+
+            // Define the description box of what was clicked
+            var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+
+            // If not initialized yet, make it appear with the correct location, text, and color, and update the links
+            if (descriptionBox.empty()) {
+              descriptionBox = descriptionContainer.append("div")
+                .classed("description-box", true)
+                .attr("id", d.replace(/\s/g, ''), true)
+                .style("display", "block")
+                .text(dataGrab)
+                .style("font-size", "10px") 
+                .style("left", function(d, i) {
+                  var right = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().right
+                  var left = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().left
+                  console.log(right, left, bound_id);
+                  return (clickx + 52) + "px"
+                })
+                .style("top", (clicky + 130) + "px")
+                .style("background-color", currColor);
+              updateLinks();
+            } else { // If initialized and not shown, show the box and text and update the links
+              if (descriptionBox.style("display") === "none") {
+                descriptionBox.style("display", "block")
+                  .text(dataGrab)
+                  .style("left", (clickx + 52) + "px")
+                  .style("top", (clicky + 130) + "px");
+                  updateLinks();
+              } else { // If initialized and shown, hide the box and update the links
+                descriptionBox.style("display", "none");
+                updateLinks();
+              }
+            }
+
+            // Create a drag event for the description box
+            descriptionBox.call(
+                d3.drag()
+                .on("start", function(event, d) {
+                  // Initialize dx and dy as starting locations before the drag
+                  dx = parseInt(d3.select(this).style("left"), 10);
+                  dy = parseInt(d3.select(this).style("top"), 10);
+                })
+                .on("drag", function(event, d) {
+                  // Drag by the change in movement
+                  dx = dx + event.dx;
+                  dy = dy + event.dy;
+                  d3.select(this).style("left", (dx) + "px")
+                                 .style("top", (dy) + "px");
+                  updateLinks(); // Move the links
+          }))});
+        
+      }).catch(function(error) {
+        console.log(error); // Catch and log any errors
+      });
+
+
+    </script>
+  </body>
+</html>
+
