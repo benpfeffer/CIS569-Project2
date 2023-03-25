@@ -8,5 +8,3 @@
 ##### ----- add this functionality
 #### -The description boxes can open and be outside the boundary 
 ##### ----- set rule if they open outside to open inside instaed
-#### -There is no limitations on the movement of any boxes 
-##### ----- change to only allow movement within clusters
