@@ -6,4 +6,5 @@
 ##### ----- add this functionality
 #### -The description boxes can open and be outside the boundary 
 ##### ----- set rule if they open outside to open inside instead
-##### ----- Currently can be dragged slightly outside. DO WE MAKE THIS A TIGHTER BOUNDARY?
+##### ----- currently can be dragged slightly outside. DO WE MAKE THIS A TIGHTER BOUNDARY?
+##### ----- make them open on top of the docs
