@@ -9,8 +9,14 @@
         cursor: pointer;
         position: absolute;
         z-index: 0;
-        resize: both;
+        resize:both;
+        overflow: auto;
+        max-width: 800px;
+  min-width: 300px;
+  max-height: 600px;
+  min-height: 200px;
       }
+
       .draggable-box {
         width: 70px;
         height: 30px;
@@ -18,7 +24,7 @@
         text-align: center;
         cursor: pointer;
         position: absolute;
-        z-index: 1;
+        z-index: 2;
       }
       .description-box {
         width: 200px;
@@ -37,6 +43,7 @@
         z-index: 1;
         stroke: black;
       }
+     
     </style>
   </head>
   <body>
@@ -73,7 +80,9 @@
           .attr("y1", 0)
           .attr("x2", 0)
           .attr("y2", 0)
+          .attr("z", 3)
           .classed("link", true);
+          
           // Create the function to update links, which creates links connecting visible boxes
           function updateLinks() {
             // Remove any existing links
@@ -99,6 +108,16 @@
               }
             });
           }
+          function openAllDescriptionsInCluster(cluster) {
+              // Get all the document nodes in the cluster
+              var nodes = d3.selectAll(".draggable-box")
+                .filter(function(d) { return clusters[titles.indexOf(d)] == cluster; });
+
+              // Trigger a click event on each node to open its description box
+              nodes.each(function(d) {
+                d3.select(this).dispatch("click");
+              });
+            }
 
 
         // Extract file titles from dictionary and turn into one list
@@ -157,6 +176,12 @@
               // Move the element by the drag movement
               d3.select(this).attr("transform", `translate(${event.x}, ${event.y})`);
             }))
+          .on("dblclick", function(event, d) {   
+    openAllDescriptionsInCluster(d);
+  });
+  
+
+
 
         
         // Create a map to set each agency to a color
@@ -270,8 +295,7 @@
                   if (!descriptionBox.empty()) {
                       updateLinks();
                   }
-              });
-
+              })
               // Define the description box of what was clicked
               var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
               var descriptionBoundContainer = d3.select("#c" + i + ".draggable-box");// = d3.select("#c" + i).selectAll(".draggable-box")
