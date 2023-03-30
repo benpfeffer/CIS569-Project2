@@ -148,16 +148,23 @@
               dx = parseInt(d3.select(this).style("left"), 10);
               dy = parseInt(d3.select(this).style("top"), 10);
               sx = dx; // Starting x value of the drag
-              console.log(event.x, 1800 + event.y);
-              var mouseX = event.x;
-              var mouseY = 1800 + event.y;
+              //console.log(event.x, 1800 + event.y);
+              var mouseX = event.x + window.scrollX;
+              var mouseY = 1800 + event.y - window.scrollY;
               var boxVals = d3.select(this).node().getBoundingClientRect()
               // IF clickx and clicky LEAVE MOUSE IN DRAG CORNER, DONT DRAG
+
+              // 410 189
+              // 610 157
+              // 1054 577
               console.log(boxVals.height, boxVals.y)
               console.log(boxVals.width, boxVals.x)
-              if(mouseY > boxVals.height + boxVals.y - 35){ // CHANGE TO RELATIVE SIZE
-                if(mouseX > boxVals.width + boxVals.y - 30){ // CHANGE TO RELATIVE SIZE
-                  doNotDrag = true;
+              console.log(mouseX, mouseY);
+              if(mouseY > boxVals.height + boxVals.y - 35){ // ADD SCROLL POSITION
+                console.log("Click Y in size change area");
+                if(mouseX > boxVals.width + boxVals.x - 30){
+                  console.log("Click X in size change area");
+                  doNotDrag = true; // size change
                 }else{
                   doNotDrag = false;
                 }
