@@ -23,7 +23,7 @@
         text-align: center;
         cursor: pointer;
         position: absolute;
-        z-index: 1;
+        
       }
       .description-box {
         width: 200px;
@@ -153,14 +153,10 @@
               var mouseY = 1800 + event.y - window.scrollY;
               var boxVals = d3.select(this).node().getBoundingClientRect()
               // IF clickx and clicky LEAVE MOUSE IN DRAG CORNER, DONT DRAG
-
-              // 410 189
-              // 610 157
-              // 1054 577
               console.log(boxVals.height, boxVals.y)
               console.log(boxVals.width, boxVals.x)
               console.log(mouseX, mouseY);
-              if(mouseY > boxVals.height + boxVals.y - 35){ // ADD SCROLL POSITION
+              if(mouseY > boxVals.height + boxVals.y - 35){
                 console.log("Click Y in size change area");
                 if(mouseX > boxVals.width + boxVals.x - 30){
                   console.log("Click X in size change area");
@@ -238,7 +234,8 @@
             .enter()
             .append("div")
             .classed("draggable-box", true)
-            .attr("id", function(d) {return "c" + clusters[titles.indexOf(d)];}) 
+            // .attr("z-index","3")
+            .attr("id", function(d) {return "c" + d})//clusters[titles.indexOf(d)];}) 
             .text(function(d) { return d; })
             .style("font-size", "10px") 
             .style("left", function(d, i) {
@@ -306,6 +303,7 @@
               })
             )
             .on("click", function(event, d) { // Click event
+              console.log(d);
               // Initialize location of item clicked
               clickx = parseInt(d3.select(this).style("left"), 10);
               clicky = parseInt(d3.select(this).style("top"), 10);
@@ -316,17 +314,17 @@
               var bound_id = clusters[titles.indexOf(d)];
 
               // Select draggable boxes, and for each description box update the links
-              boxesContainer.selectAll(".draggable-box")
-              .each(function(d) {
-                  var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
-                  if (!descriptionBox.empty()) {
-                      updateLinks();
-                  }
-              });
+              // boxesContainer.selectAll(".description-box")
+              // .each(function(d) {
+              //     var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
+              //     if (!descriptionBox.empty()) {
+              //         updateLinks();
+              //     }
+              // });
 
               // Define the description box of what was clicked
               var descriptionBox = d3.selectAll("#" + d.replace(/\s/g, ''));
-              var descriptionBoundContainer = d3.select("#c" + i + ".draggable-box");// = d3.select("#c" + i).selectAll(".draggable-box")
+              var descriptionBoundContainer = d3.select("#c" + d + ".draggable-box");// = d3.select("#c" + i).selectAll(".draggable-box")
               console.log(descriptionBoundContainer);
 
               // If not initialized yet, make it appear with the correct location, text, and color, and update the links
@@ -335,18 +333,21 @@
                   .classed("description-box", true)
                   .attr("id", d.replace(/\s/g, ''), true)
                   .style("display", "block")
+                  // .attr("position", "relative")
+                  // .attr("z-index","4")
                   .text(dataGrab)
                   .style("font-size", "10px") 
                   .style("left", function(d, i) {
                     var right = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().right
                     var left = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().left
+                    console.log(clickx, right, left);
                     //console.log(window.scrollX, clickx);
-                    return (clickx + 52) + "px"
+                    return "50px"//(clickx + 52) + "px"
                   })
                   .style("top", function(d, i) {
                     var top = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().top
                     var bottom = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().bottom
-                    return (clicky + 130) + "px"
+                    return "130px"//(clicky + 130) + "px"
                   })
                   .style("background-color", currColor);
                 updateLinks();
@@ -357,12 +358,12 @@
                     .style("left", function(d, i) {
                       var right = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().right
                       var left = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().left
-                      return (clickx + 52) + "px"
+                      return "52px"//(clickx + 52) + "px"
                     })
                     .style("top", function(d, i) {
                       var top = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().top
                       var bottom = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().bottom
-                      return (clicky + 130) + "px"
+                      return "130px"//(clicky + 130) + "px"
                     })
                     updateLinks();
                 } else { // If initialized and shown, hide the box and update the links
@@ -386,14 +387,20 @@
                     var left = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().left
                     var boundX = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().x
                     var boundY = d3.selectAll("#c" + bound_id).node().getBoundingClientRect().y
+
+                    var label = d3.selectAll("#c" + d).node().getBoundingClientRect();
+                    var outer = d3.selectAll("#c" + bound_id).node().getBoundingClientRect();
+                    var relX = label.x - outer.x;
+                    var relY = label.y - outer.y;
+
                     // Drag by the change in movement
                     dx = dx + event.dx;
                     dy = dy + event.dy;
 
-                    if(dx < right - boundX - 80){
-                      if(dx > left - boundX - 2){
-                        if(dy < bottom - boundY - 40){
-                          if(dy> top - boundY - 2){
+                    if(dx < right - boundX - 80 - relX){
+                      if(dx > left - boundX - 40 - relX){
+                        if(dy < bottom - boundY - 40 - relY){
+                          if(dy > top - boundY - 20 - relY){
                             d3.select(this).style("left", (dx) + "px")
                                    .style("top", (dy) + "px");
                             updateLinks(); // Move the links
