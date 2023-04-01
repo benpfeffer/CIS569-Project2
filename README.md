@@ -1,3 +1,2 @@
 # CIS569-Project2
-### TO-DO/FIXES:
-#### Comment code properly
+## Ben Pfeffer, Andrew Anctil, Rui Zhou
